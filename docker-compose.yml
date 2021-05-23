@@ -1,0 +1,51 @@
+version: '3.9'
+
+volumes:
+  grafana_data:
+  influxdb_data:
+
+networks:
+  loki:
+
+services:
+  loki:
+    image: grafana/loki:2.2.1
+    ports:
+      - 3100:3100
+    volumes:
+      - ./sys_loki/loki.yml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - loki
+
+  promtail:
+    image: grafana/promtail:2.2.1
+    volumes:
+      - /var/log:/var/log
+      - ./sys_loki/promtail.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - loki
+
+  grafana:
+    image: grafana/grafana:latest
+    labels:
+      - "docker.group=default"
+    volumes:
+      - ./app_grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasource.yaml
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - loki
+
+  influxdb:
+    image: influxdb:1.8.5
+    labels:
+      - "docker.group=default"
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    ports:
+      - 8086:8086
+    networks:
+      - loki
